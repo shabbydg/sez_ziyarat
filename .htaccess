@@ -1,0 +1,25 @@
+Options +FollowSymLinks
+RewriteEngine On
+
+RewriteRule ^home*$ index.php [NC,L]
+RewriteRule ^dashboard*$ index.php?view=dashboard [NC,L]
+
+RewriteRule ^new-safar*$ index.php?view=new-safar [NC,L]
+RewriteRule ^safars*$ index.php?view=safars [NC,L]
+RewriteRule ^active-safars*$ index.php?view=active-safars [NC,L]
+
+RewriteRule ^safars/kun-safar/([0-9]+)/edit-registration/([0-9]+) index.php?view=edit-kun-registration&safarid=$1&kunregid=$2 [NC,L]
+RewriteRule ^safars/kun-safar/([0-9]+)/edit-photos/([0-9]+) index.php?view=edit-kun-photos&safarid=$1&kunregid=$2 [NC,L]
+
+RewriteRule ^safars/kun-safar/([0-9]+)/new-registration index.php?view=new-kun-registration&safarid=$1 [NC,L]
+RewriteRule ^safars/kun-safar/([0-9]+)/new-pre-registration index.php?view=new-kun-preregistration&safarid=$1 [NC,L]
+RewriteRule ^safars/kun-safar/([0-9]+) index.php?view=kun-safar&safarid=$1 [NC,L]
+
+RewriteRule ^safars/misr-safar/([0-9]+)/edit-registration/([0-9]+) index.php?view=edit-misr-registration&safarid=$1&misrregid=$2 [NC,L]
+RewriteRule ^safars/misr-safar/([0-9]+)/edit-photos/([0-9]+) index.php?view=edit-misr-photos&safarid=$1&misrregid=$2 [NC,L]
+
+RewriteRule ^safars/misr-safar/([0-9]+)/new-registration index.php?view=new-misr-registration&safarid=$1 [NC,L]
+RewriteRule ^safars/misr-safar/([0-9]+)/new-pre-registration index.php?view=new-misr-preregistration&safarid=$1 [NC,L]
+RewriteRule ^safars/misr-safar/([0-9]+) index.php?view=misr-safar&safarid=$1 [NC,L]
+
+RewriteRule ^safars/edit-safar/([0-9]+) index.php?view=edit-safar&safarid=$1 [NC,L]

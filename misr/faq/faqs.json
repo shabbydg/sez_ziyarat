@@ -1,0 +1,114 @@
+{
+    "categories": [
+        {
+            "id": 5,
+            "name": "Ziyarat\/Faiz Related",
+            "faqs": [
+                {
+                    "id": 15,
+                    "question": "Can we get \u201cSALAM HAFTI\u201d from Faiz?",
+                    "answer": "Yes, you can get it from the Reception with the request to kindly return it before departing."
+                },
+                {
+                    "id": 18,
+                    "question": "What is the distance of Ziyarat of Imam Husain AS from Faiz?",
+                    "answer": "<p>It&rsquo;s a 15 min walk. It&rsquo;s a nice walk early morning or at night.<\/p>"
+                },
+                {
+                    "id": 17,
+                    "question": "What is the distance of Jame-ul-Anwar from Faiz?",
+                    "answer": "<p>It&rsquo;s a 15 min walk. It&rsquo;s a nice walk early morning or at night.<\/p>"
+                },
+                {
+                    "id": 16,
+                    "question": "Niyaz \/ Zabihat \/ Darees Information",
+                    "answer": "Niyaz Thaal USD 20\/-, Zabihat USD 121\/-, Full Darees USD 500\/-"
+                }
+            ]
+        },
+        {
+            "id": 1,
+            "name": "General Information",
+            "faqs": [
+                {
+                    "id": 2,
+                    "question": "What shall I do if I have a plan of having lunch or dinner outside Faiz?",
+                    "answer": "Zuwwar office should be informed to avoid food wastage, or at least kitchen should be informed."
+                },
+                {
+                    "id": 3,
+                    "question": "Is it allowed to take food from Mawaid to the rooms?",
+                    "answer": "It is strictly prohibited."
+                },
+                {
+                    "id": 4,
+                    "question": "Is tea available at all times in Mawaid?",
+                    "answer": "Tea is available after every meal."
+                },
+                {
+                    "id": 5,
+                    "question": "What are the charges for Laundry service and does it wash all clothing?",
+                    "answer": "<p>Yes, all clothing are washed in laundry and the price list is kept in each room.<\/p>"
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "name": "Travel and Logistics",
+            "faqs": [
+                {
+                    "id": 5,
+                    "question": "Where can I get a local sim card for my mobile?",
+                    "answer": "We recommend Vodafone sim card that can be purchased at the airport or after your arrival to Faiz-e-Haakimi from a nearby Vodafone store by submitting passport copy."
+                },
+                {
+                    "id": 6,
+                    "question": "Is there any route map available for convenience?",
+                    "answer": "Mehman can get route map from the Faiz Reception."
+                },
+                {
+                    "id": 7,
+                    "question": "What is the distance from the airport to Faiz, and what are the average taxi charges?",
+                    "answer": "It\u2019s a 30 to 45 minute drive."
+                },
+                {
+                    "id": 8,
+                    "question": "Is there a money exchange facility available in Faiz?",
+                    "answer": "Not yet, but you can get exchange from money exchange\u2019s near Imam Husain AS Ziyarat, and Zuwwar office will also assist you for any further information. Indian rupees are not accepted in Cairo."
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "name": "Tourism and Activities",
+            "faqs": [
+                {
+                    "id": 9,
+                    "question": "How can we make arrangements to visit the tourist sites?",
+                    "answer": "If you are interested in any program, Zuwwar office will assist you and will arrange a relaxing trip for you and your family."
+                },
+                {
+                    "id": 10,
+                    "question": "Are there any tourist sites around Cairo worth visiting?",
+                    "answer": "Many resorts and beaches, Alexandria and Sharm e Shaikh are worth visiting, Zuwwar office will be ready to help for any further information."
+                },
+                {
+                    "id": 11,
+                    "question": "What are the recommended places for shopping?",
+                    "answer": "Khan el khalili bazaar is good place for oriental and antiques, City Stars for shopping and entertainment like movies and restaurants."
+                }
+            ]
+        },
+        {
+            "id": 6,
+            "name": "Climate and Clothing",
+            "faqs": [
+                {
+                    "id": 17,
+                    "question": "What is the climate in Cairo and what type of clothing is required?",
+                    "answer": "It is really cold from December \u2013 March, and hot from May to October. Current Climate is pleasant and night time temperatures can drop to around 20 Degrees."
+                }
+            ]
+        }
+    ]
+}

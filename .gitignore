@@ -1,0 +1,42 @@
+# Sensitive credentials
+gcloud/service-account.json
+**/config.php
+config*.php
+
+# Vendor dependencies (managed by composer)
+vendor/
+node_modules/
+
+# Error logs
+error_log
+*.log
+
+# Temporary files
+temp_updates/
+update_filenames/
+renamed_files/
+
+# Uploaded files and photos (may contain personal data)
+images/*
+!images/.gitkeep
+pdf/*
+!pdf/.gitkeep
+
+# System files
+.DS_Store
+.idea/
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+*.old
+*copy.php
+
+# CSV files (may contain personal data)
+*.csv
+
+# Google Cloud credentials
+translation_key.json
+
