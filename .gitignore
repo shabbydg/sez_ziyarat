@@ -17,6 +17,8 @@ update_filenames/
 renamed_files/
 
 # Uploaded files and photos (may contain personal data)
+images/uploads/
+admin/images/uploads/
 images/*
 !images/.gitkeep
 pdf/*
