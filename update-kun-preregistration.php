@@ -12,6 +12,7 @@ $its = $_POST['its'];
 $contact = $_POST['contact'];
 $email = $_POST['email'];
 $itsname = $_POST['itsname'];
+$source_kun_id = isset($_POST['source_kun_id']) ? intval($_POST['source_kun_id']) : 0;
 
 if($kunregid == 0){
     //INSERT

@@ -2,6 +2,22 @@
 //NEW SAFAR SCRIPT
 $safarid = (isset($_GET['safarid']) && $_GET['safarid'] != '') ? $_GET['safarid'] : '0';
 
+// Check for prefill mode (Flow C: Expired passport)
+$prefill_mode = isset($_GET['prefill']) ? $_GET['prefill'] : null;
+$source_kun_id = isset($_GET['source']) ? intval($_GET['source']) : 0;
+
+$prefill_data = null;
+$expired_passport_mode = false;
+
+if ($prefill_mode === 'expired_passport' && $source_kun_id > 0) {
+    $sql_prefill = "SELECT * FROM zyt_kun_registrations WHERE kun_id = $source_kun_id";
+    $result_prefill = dbQuery($sql_prefill);
+    if ($result_prefill && dbNumRows($result_prefill) > 0) {
+        $prefill_data = dbFetchAssoc($result_prefill);
+        $expired_passport_mode = true;
+    }
+}
+
 //get all the safar details
 $sql_safar_dets = "SELECT safar_name FROM zyt_safar WHERE safar_id = $safarid";
 extract(dbFetchAssoc(dbQuery($sql_safar_dets)));
@@ -41,6 +57,37 @@ extract(dbFetchAssoc(dbQuery($sql_safar_dets)));
                     </div>
                     <?php } ?>
 
+                    <!-- Expired Passport - Partial Prefill Alert -->
+                    <?php if ($expired_passport_mode && $prefill_data): 
+                        require_once 'common/date_helpers.php';
+                    ?>
+                    <div class="alert alert-warning shadow-sm">
+                        <div class="d-flex align-items-start">
+                            <i class="fas fa-exclamation-triangle fa-2x text-warning me-3"></i>
+                            <div class="flex-grow-1">
+                                <h5 class="alert-heading"><i class="fas fa-passport"></i> Passport Expired - New Passport Required</h5>
+                                <p>Your previous passport <strong><?php echo $prefill_data['kun_ppno']; ?></strong> 
+                                   expired on <strong><?php echo formatDateForDisplay($prefill_data['kun_ppexpiry']); ?></strong>.</p>
+                                
+                                <p class="mb-2"><strong class="text-success">Good News - We've Pre-Filled Your Information:</strong></p>
+                                <ul class="mb-2">
+                                    <li><i class="fas fa-check text-success"></i> Contact details (Address, Phone, Email)</li>
+                                    <li><i class="fas fa-check text-success"></i> Family names (English + Arabic translations)</li>
+                                    <li><i class="fas fa-check text-success"></i> Personal details (DOB, Gender, Birth Place, Profession)</li>
+                                </ul>
+                                
+                                <p class="mb-2"><strong class="text-danger">⚠️ Important - You Must:</strong></p>
+                                <ol class="mb-0">
+                                    <li>Upload your <strong>NEW passport information page</strong> below</li>
+                                    <li>Verify all pre-filled information is still correct (fields highlighted in yellow)</li>
+                                    <li>Update your names/nationality if changed in new passport</li>
+                                    <li>Complete the declaration</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
                     <form action="<?php echo $server_link; ?>update-kun-registration.php" method="post" id="kun-registration" novalidate>
                         <input type="hidden" name="safarid" value="<?php echo $safarid; ?>" />
                         <!-- Section 1: Basic Information -->
@@ -56,8 +103,12 @@ extract(dbFetchAssoc(dbQuery($sql_safar_dets)));
                                 <div class="col-md-6 col-12">
                                     <div class="form-group mb-3">
                                         <label for="its" class="form-label font-weight-bold">ITS Number <span class="text-danger">*</span></label>
-                                        <input type="text" id="its" name="its" class="form-control form-control-lg" required placeholder="Enter 8-digit ITS number">
-                                        <small class="form-text text-muted">8-digit identification number</small>
+                                        <input type="text" id="its" name="its" 
+                                               class="form-control form-control-lg <?php echo $prefill_data ? 'bg-light' : ''; ?>" 
+                                               value="<?php echo $prefill_data ? $prefill_data['kun_its'] : ''; ?>"
+                                               <?php echo $prefill_data ? 'readonly' : ''; ?>
+                                               required placeholder="Enter 8-digit ITS number">
+                                        <small class="form-text text-muted">8-digit identification number<?php echo $prefill_data ? ' (from previous registration)' : ''; ?></small>
                                     </div>
                                 </div>
                             </div>
@@ -86,8 +137,13 @@ extract(dbFetchAssoc(dbQuery($sql_safar_dets)));
                             <div class="row">
                                 <div class="col-12">
                                     <div class="form-group mb-3">
-                                        <label for="address" class="form-label font-weight-bold">Address</label>
-                                        <textarea id="address" name="address" class="form-control" rows="3" placeholder="Enter complete address"></textarea>
+                                        <label for="address" class="form-label font-weight-bold">Address<?php if($prefill_data) echo ' <span class="badge bg-warning">Pre-filled</span>'; ?></label>
+                                        <textarea id="address" name="address" 
+                                                  class="form-control <?php echo $prefill_data ? 'prefilled-field' : ''; ?>" 
+                                                  rows="3" placeholder="Enter complete address"><?php echo $prefill_data ? $prefill_data['kun_address'] : ''; ?></textarea>
+                                        <?php if($prefill_data): ?>
+                                        <small class="text-warning"><i class="fas fa-info-circle"></i> From previous registration - please verify</small>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
@@ -95,14 +151,20 @@ extract(dbFetchAssoc(dbQuery($sql_safar_dets)));
                             <div class="row">
                                 <div class="col-md-6 col-12">
                                     <div class="form-group mb-3">
-                                        <label for="contact" class="form-label font-weight-bold">Mobile Number <span class="text-danger">*</span></label>
-                                        <input type="tel" id="contact" name="contact" class="form-control" required placeholder="+94 77 123 4567">
+                                        <label for="contact" class="form-label font-weight-bold">Mobile Number <span class="text-danger">*</span><?php if($prefill_data) echo ' <span class="badge bg-warning">Pre-filled</span>'; ?></label>
+                                        <input type="tel" id="contact" name="contact" 
+                                               class="form-control <?php echo $prefill_data ? 'prefilled-field' : ''; ?>" 
+                                               value="<?php echo $prefill_data ? $prefill_data['kun_contact'] : ''; ?>"
+                                               required placeholder="+94 77 123 4567">
                                     </div>
                                 </div>
                                 <div class="col-md-6 col-12">
                                     <div class="form-group mb-3">
-                                        <label for="email" class="form-label font-weight-bold">Email Address <span class="text-danger">*</span></label>
-                                        <input type="email" id="email" name="email" class="form-control" required placeholder="example@email.com">
+                                        <label for="email" class="form-label font-weight-bold">Email Address <span class="text-danger">*</span><?php if($prefill_data) echo ' <span class="badge bg-warning">Pre-filled</span>'; ?></label>
+                                        <input type="email" id="email" name="email" 
+                                               class="form-control <?php echo $prefill_data ? 'prefilled-field' : ''; ?>" 
+                                               value="<?php echo $prefill_data ? $prefill_data['kun_email'] : ''; ?>"
+                                               required placeholder="example@email.com">
                                     </div>
                                 </div>
                             </div>
@@ -508,6 +570,32 @@ extract(dbFetchAssoc(dbQuery($sql_safar_dets)));
     .module-body {
         padding: 1rem;
     }
+}
+/* Prefilled field styling for Flow C (expired passport) */
+.prefilled-field {
+    background-color: #fff3cd !important;
+    border-left: 3px solid #ffc107 !important;
+    transition: all 0.3s ease;
+}
+
+.prefilled-field:focus {
+    background-color: #fff !important;
+    border-left: 3px solid var(--brown-primary) !important;
+}
+
+.verify-required {
+    border-color: #ff9800 !important;
+}
+
+.expired-passport-reference {
+    text-decoration: line-through;
+    color: #dc3545;
+    font-style: italic;
+}
+
+.badge.bg-warning {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
 }
 </style>
 <div class="align-right">

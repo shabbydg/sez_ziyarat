@@ -37,8 +37,20 @@ function extractPassportData($imagePath) {
             // Parse MRZ (Machine Readable Zone) data
             $passportData = parseMRZData($text);
             
+            // Extract additional fields from full text (not in MRZ)
+            $additionalData = extractAdditionalFields($text);
+            $passportData = array_merge($passportData, $additionalData);
+            
+            // Add confidence scores
+            $dataWithConfidence = addConfidenceScores($passportData, $text);
+            
             $imageAnnotatorClient->close();
-            return ['success' => true, 'data' => $passportData, 'rawText' => $text];
+            return [
+                'success' => true, 
+                'data' => $dataWithConfidence, 
+                'rawText' => $text,
+                'confidence_score' => calculateOverallConfidence($dataWithConfidence)
+            ];
         } else {
             $imageAnnotatorClient->close();
             return ['error' => 'No text detected in image'];
@@ -191,7 +203,10 @@ function parseMRZData($text) {
         'kun_dob' => '',
         'kun_nationality' => '',
         'kun_gender' => '',
-        'kun_passport_expiry' => ''
+        'kun_passport_expiry' => '',
+        'kun_ppissue' => '',
+        'kun_placeofissue' => '',
+        'kun_birthplace' => ''
     ];
 
     // Collect MRZ candidates using regex and pick the last two 44-char lines
@@ -321,6 +336,218 @@ function computeMRZCheckDigit($data) {
     return $sum % 10;
 }
 
+/**
+ * Extract additional fields not available in MRZ
+ * Includes: Issue Date, Place of Issue, Birth Place
+ */
+function extractAdditionalFields($text) {
+    $additionalData = [
+        'kun_ppissue' => '',
+        'kun_placeofissue' => '',
+        'kun_birthplace' => ''
+    ];
+    
+    // Extract Issue Date
+    // Look for patterns: "Date of issue", "Issue date", "Issued on"
+    $issueDatePatterns = [
+        '/(?:Date\s+of\s+[Ii]ssue|Issue\s+[Dd]ate|Issued\s+on)[:\s]*(\d{2}[\/\-]\d{2}[\/\-]\d{4})/i',
+        '/(?:Date\s+of\s+[Ii]ssue|Issue\s+[Dd]ate)[:\s]*(\d{2}\s+[A-Z]{3}\s+\d{4})/i'
+    ];
+    
+    foreach ($issueDatePatterns as $pattern) {
+        if (preg_match($pattern, $text, $matches)) {
+            $dateStr = parseDateString($matches[1]);
+            if ($dateStr) {
+                $additionalData['kun_ppissue'] = $dateStr;
+                break;
+            }
+        }
+    }
+    
+    // Extract Place of Issue
+    // Look for patterns: "Place of issue", "Authority", "Issuing office"
+    $placeOfIssuePatterns = [
+        '/(?:Place\s+of\s+[Ii]ssue|Issuing\s+[Aa]uthority|Issuing\s+[Oo]ffice)[:\s]*([A-Za-z\s,]+?)(?:\n|$)/i',
+        '/(?:Authority)[:\s]*([A-Z\s]+?)(?:\n|Passport)/i'
+    ];
+    
+    foreach ($placeOfIssuePatterns as $pattern) {
+        if (preg_match($pattern, $text, $matches)) {
+            $place = trim($matches[1]);
+            if (strlen($place) > 2 && strlen($place) < 100) {
+                $additionalData['kun_placeofissue'] = $place;
+                break;
+            }
+        }
+    }
+    
+    // Extract Birth Place
+    // Look for patterns: "Place of birth", "Born in", "Birth place"
+    $birthPlacePatterns = [
+        '/(?:Place\s+of\s+[Bb]irth|Born\s+in|Birth\s+[Pp]lace)[:\s]*([A-Za-z\s,]+?)(?:\n|$)/i',
+        '/(?:P[\.\/]O[\.\/]B)[:\s]*([A-Z\s]+?)(?:\n|Date)/i'
+    ];
+    
+    foreach ($birthPlacePatterns as $pattern) {
+        if (preg_match($pattern, $text, $matches)) {
+            $place = trim($matches[1]);
+            if (strlen($place) > 2 && strlen($place) < 100) {
+                $additionalData['kun_birthplace'] = $place;
+                break;
+            }
+        }
+    }
+    
+    return $additionalData;
+}
+
+/**
+ * Parse date string from various formats to YYYY-MM-DD
+ */
+function parseDateString($dateStr) {
+    $dateStr = trim($dateStr);
+    
+    // Try different date formats
+    $formats = [
+        'd/m/Y', 'd-m-Y', 'd.m.Y',
+        'm/d/Y', 'm-d-Y', 'm.d.Y',
+        'Y-m-d', 'Y/m/d',
+        'd M Y', 'd F Y'
+    ];
+    
+    foreach ($formats as $format) {
+        $date = DateTime::createFromFormat($format, $dateStr);
+        if ($date) {
+            return $date->format('Y-m-d');
+        }
+    }
+    
+    // Try month name formats (e.g., "15 JAN 2020")
+    if (preg_match('/(\d{1,2})\s+([A-Z]{3})\s+(\d{4})/i', $dateStr, $matches)) {
+        $monthMap = [
+            'JAN' => '01', 'FEB' => '02', 'MAR' => '03', 'APR' => '04',
+            'MAY' => '05', 'JUN' => '06', 'JUL' => '07', 'AUG' => '08',
+            'SEP' => '09', 'OCT' => '10', 'NOV' => '11', 'DEC' => '12'
+        ];
+        
+        $day = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+        $month = $monthMap[strtoupper($matches[2])] ?? null;
+        $year = $matches[3];
+        
+        if ($month && checkdate($month, $day, $year)) {
+            return $year . '-' . $month . '-' . $day;
+        }
+    }
+    
+    return null;
+}
+
+/**
+ * Add confidence scores to extracted data
+ */
+function addConfidenceScores($passportData, $rawText) {
+    $dataWithConfidence = [];
+    
+    foreach ($passportData as $field => $value) {
+        $confidence = estimateFieldConfidence($field, $value, $rawText);
+        
+        $dataWithConfidence[$field] = [
+            'value' => $value,
+            'confidence' => $confidence
+        ];
+    }
+    
+    return $dataWithConfidence;
+}
+
+/**
+ * Estimate confidence for each field based on validation and context
+ */
+function estimateFieldConfidence($fieldName, $value, $rawText) {
+    if (empty($value)) {
+        return 0.0;
+    }
+    
+    $baseConfidence = 0.70; // Default confidence
+    
+    switch ($fieldName) {
+        case 'kun_passport_no':
+            // High confidence if alphanumeric and 6-9 chars
+            if (preg_match('/^[A-Z0-9]{6,9}$/', $value)) {
+                return 0.95;
+            }
+            return 0.75;
+            
+        case 'kun_fname':
+        case 'kun_lname':
+            // High confidence if capitalized properly
+            if (preg_match('/^[A-Z][a-z]+$/', $value) || preg_match('/^[A-Z]+$/', $value)) {
+                return 0.90;
+            }
+            return 0.75;
+            
+        case 'kun_dob':
+        case 'kun_passport_expiry':
+        case 'kun_ppissue':
+            // High confidence if valid date format
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+                $parts = explode('-', $value);
+                if (checkdate($parts[1], $parts[2], $parts[0])) {
+                    return 0.92;
+                }
+            }
+            return 0.70;
+            
+        case 'kun_gender':
+            // Very high confidence if M or F
+            if (in_array($value, ['M', 'F'])) {
+                return 0.99;
+            }
+            return 0.50;
+            
+        case 'kun_nationality':
+            // High confidence if 3-letter code
+            if (preg_match('/^[A-Z]{3}$/', $value)) {
+                return 0.88;
+            }
+            // Medium if full nationality name
+            if (strlen($value) > 3) {
+                return 0.75;
+            }
+            return 0.60;
+            
+        case 'kun_placeofissue':
+        case 'kun_birthplace':
+            // Medium confidence for place names
+            if (strlen($value) > 2 && strlen($value) < 100) {
+                // Check if it appears multiple times in text (higher confidence)
+                $occurrences = substr_count(strtolower($rawText), strtolower($value));
+                return min(0.85, 0.60 + ($occurrences * 0.10));
+            }
+            return 0.50;
+            
+        default:
+            return $baseConfidence;
+    }
+}
+
+/**
+ * Calculate overall confidence score
+ */
+function calculateOverallConfidence($dataWithConfidence) {
+    $totalConfidence = 0;
+    $fieldCount = 0;
+    
+    foreach ($dataWithConfidence as $field => $data) {
+        if (!empty($data['value'])) {
+            $totalConfidence += $data['confidence'];
+            $fieldCount++;
+        }
+    }
+    
+    return $fieldCount > 0 ? round($totalConfidence / $fieldCount, 2) : 0.0;
+}
+
 // Fallback parsing method for when MRZ is not detected
 function parseMRZDataFallback($text) {
     $passportData = [
@@ -330,7 +557,10 @@ function parseMRZDataFallback($text) {
         'kun_dob' => '',
         'kun_nationality' => '',
         'kun_gender' => '',
-        'kun_passport_expiry' => ''
+        'kun_passport_expiry' => '',
+        'kun_ppissue' => '',
+        'kun_placeofissue' => '',
+        'kun_birthplace' => ''
     ];
 
     // Look for passport number pattern (usually 6-9 alphanumeric characters)
@@ -398,6 +628,10 @@ function parseMRZDataFallback($text) {
     if (preg_match('/\b([MF])\b/', $text, $matches)) {
         $passportData['kun_gender'] = $matches[1];
     }
+    
+    // Extract additional fields using same function
+    $additionalData = extractAdditionalFields($text);
+    $passportData = array_merge($passportData, $additionalData);
 
     return $passportData;
 }

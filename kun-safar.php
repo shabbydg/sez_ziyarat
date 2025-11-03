@@ -258,18 +258,34 @@ $family_string = implode(",", $family_list);
                     ?>
                     <tr> <?php $kun_its = $eJamaat_ID; ?>
                         <td>
-                            <a href="#" class="preregistrarion" data-bs-toggle="modal" data-bs-target="#preregister_<?php echo $kun_its; ?>">
-                                <img src="<?php require 'support_files/get_applicant_image.php'; ?>" width="75" /><br />
-                                <?php echo $kun_its; ?>
-                            </a>
+                            <img src="<?php require 'support_files/get_applicant_image.php'; ?>" width="75" /><br />
+                            <?php echo $kun_its; ?>
                         </td>
                         <td></td>
                         <td><?php echo ucwords(strtolower($name)); ?></td>
                         <td>
-                            Unregistered
-                            <br /><a href="#" class="btn btn-success preregistrarion mob-on" data-bs-toggle="modal" data-bs-target="#preregister_<?php echo $kun_its; ?>">Register</a>
+                            <span class="badge bg-warning">Not Registered</span>
+                            <br /><button type="button" class="btn btn-success mt-2 mob-on" 
+                                          data-its="<?php echo $kun_its; ?>" 
+                                          data-safar="<?php echo $safarid; ?>"
+                                          data-name="<?php echo ucwords(strtolower($name)); ?>"
+                                          data-mobile="<?php echo $personalMobileNo; ?>"
+                                          data-email="<?php echo $personalEmail; ?>"
+                                          onclick="handleSmartRegistration(this)">
+                                <i class="fas fa-user-plus"></i> Register Now
+                            </button>
                         </td>
-                        <td class="cell-mob-off"><a href="#" class="btn btn-success preregistrarion" data-bs-toggle="modal" data-bs-target="#preregister_<?php echo $kun_its; ?>">Register</a></td>
+                        <td class="cell-mob-off">
+                            <button type="button" class="btn btn-success" 
+                                    data-its="<?php echo $kun_its; ?>" 
+                                    data-safar="<?php echo $safarid; ?>"
+                                    data-name="<?php echo ucwords(strtolower($name)); ?>"
+                                    data-mobile="<?php echo $personalMobileNo; ?>"
+                                    data-email="<?php echo $personalEmail; ?>"
+                                    onclick="handleSmartRegistration(this)">
+                                <i class="fas fa-user-plus"></i> Register Now
+                            </button>
+                        </td>
                         <div class="modal fade" id="preregister_<?php echo $kun_its; ?>" role="dialog" aria-hidden="true">
                           <div class="modal-dialog">
                             <div class="modal-content">
@@ -1336,6 +1352,119 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+// Smart Registration Handler
+async function handleSmartRegistration(button) {
+    const kun_its = button.dataset.its;
+    const safar_id = button.dataset.safar;
+    const name = button.dataset.name;
+    const mobile = button.dataset.mobile;
+    const email = button.dataset.email;
+    
+    // Show loading state
+    const originalHTML = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Checking...';
+    
+    try {
+        // Step 1: Check for previous registration with valid passport
+        const checkResponse = await fetch('<?php echo $server_link; ?>api/check-previous-registration.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                kun_its: kun_its,
+                safar_id: safar_id
+            })
+        });
+        
+        const checkResult = await checkResponse.json();
+        
+        if (!checkResult.success) {
+            throw new Error(checkResult.message || 'Failed to check previous registration');
+        }
+        
+        if (checkResult.has_previous && checkResult.passport_valid) {
+            // FLOW A: Auto-create from previous data (valid passport)
+            button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating...';
+            
+            const createResponse = await fetch('<?php echo $server_link; ?>api/auto-create-registration.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    source_kun_id: checkResult.previous_kun_id,
+                    safar_id: safar_id,
+                    user_id: <?php echo getActiveUser(); ?>
+                })
+            });
+            
+            const createResult = await createResponse.json();
+            
+            if (createResult.success) {
+                // Redirect to review page
+                window.location.href = '<?php echo $server_link; ?>review-auto-registration.php?kun_id=' + 
+                                      createResult.new_kun_id + '&safar=' + safar_id;
+            } else {
+                throw new Error(createResult.message || 'Auto-creation failed');
+            }
+            
+        } else if (checkResult.has_previous && !checkResult.passport_valid) {
+            // FLOW C: Partial prefill (expired passport but has previous data)
+            button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Preparing...';
+            
+            // Store previous data in sessionStorage for form access
+            sessionStorage.setItem('previous_registration', JSON.stringify(checkResult.previous_data));
+            sessionStorage.setItem('prefill_mode', 'expired_passport');
+            sessionStorage.setItem('months_remaining', checkResult.months_remaining);
+            
+            // Create pre-registration
+            const preRegResponse = await fetch('<?php echo $server_link; ?>update-kun-preregistration.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: new URLSearchParams({
+                    safarid: safar_id,
+                    its: kun_its,
+                    itsname: name,
+                    contact: mobile,
+                    email: email,
+                    source_kun_id: checkResult.previous_kun_id
+                })
+            });
+            
+            // Redirect to form with prefill flag
+            window.location.href = '<?php echo $server_link; ?>safars/kun-safar/' + safar_id + 
+                                  '/new-registration?prefill=expired_passport&source=' + 
+                                  checkResult.previous_kun_id;
+            
+        } else {
+            // FLOW B: Manual registration (no previous)
+            button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Starting...';
+            
+            // Create pre-registration
+            const preRegResponse = await fetch('<?php echo $server_link; ?>update-kun-preregistration.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: new URLSearchParams({
+                    safarid: safar_id,
+                    its: kun_its,
+                    itsname: name,
+                    contact: mobile,
+                    email: email
+                })
+            });
+            
+            // Redirect to registration form
+            window.location.href = '<?php echo $server_link; ?>safars/kun-safar/' + safar_id + '/new-registration';
+        }
+        
+    } catch (error) {
+        alert('Error: ' + error.message);
+        button.disabled = false;
+        button.innerHTML = originalHTML;
+    }
+}
+
+function getCurrentUserId() {
+    return <?php echo getActiveUser(); ?>;
+}
 </script>
 
 <?php   
