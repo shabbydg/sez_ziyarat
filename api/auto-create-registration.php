@@ -57,7 +57,7 @@ try {
          kun_mother_name, kun_mother_father_name, kun_passport_arabic_name,
          kun_father_name_arabic, kun_grandfather_name_arabic, kun_mother_name_arabic,
          kun_mother_father_name_arabic, kun_fname_arabic, kun_mname_arabic, kun_lname_arabic,
-         kun_age, kun_status, kun_created_date, kun_created_by)
+         kun_age, kun_status, kun_lastupdate, kun_lastupdatememid)
     SELECT $safar_id, kun_its, kun_fname, kun_lname, kun_mname, kun_ppno,
            kun_ppexpiry, kun_ppissue, kun_placeofissue, kun_dob, kun_gender,
            kun_nationality, kun_birthplace, kun_address, kun_contact, kun_email,
@@ -65,7 +65,7 @@ try {
            kun_mother_name, kun_mother_father_name, kun_passport_arabic_name,
            kun_father_name_arabic, kun_grandfather_name_arabic, kun_mother_name_arabic,
            kun_mother_father_name_arabic, kun_fname_arabic, kun_mname_arabic, kun_lname_arabic,
-           kun_age, 'pending', NOW(), $user_id
+           kun_age, 'registered', NOW(), $user_id
     FROM zyt_kun_registrations
     WHERE kun_id = $source_kun_id";
     
