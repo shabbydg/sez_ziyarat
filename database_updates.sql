@@ -91,3 +91,6 @@ MODIFY COLUMN `kun_status` ENUM(
   'cancelled'
 ) NOT NULL DEFAULT 'registered';
 
+-- Phase 4: foreign_census (anjuman DB) defaults for international registration stubs
+-- See migrations/20261126_foreign_census_defaults.sql (applied against dbName2/anjuman).
+
